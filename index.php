@@ -6,54 +6,70 @@
 		<script src="js/jquery-1.11.0.min.js"></script>
 		<script src="js/vendor/jquery.js"></script>
 		<script src="js/foundation.min.js"></script>
-		<script src="datatables/js/jquery.dataTables.js"></script>
+		<script src="js/jquery.tablePagination.0.5.min.js"></script>
+
+		<link rel="stylesheet" href="css/normalize.css">
+		<link rel="stylesheet" href="css/foundation.css">
+		<link rel="stylesheet" href="app_style.css">
+		
+		<!--<script src="datatables/js/jquery.dataTables.js"></script>
 		<script src="datatables/css/jquery.dataTables.css"></script>
-		<link rel="stylesheet" href="css/normalize.css"></link>
-		<link rel="stylesheet" href="css/foundation.css"></link>
-		<link rel="stylesheet" href="app_style.css"></link>
+		
+		<script src="jqPagination/js/jquery.jqpagination.js"></script>
+		<link rel="stylesheet" href="jqPagination/css/jqpagination.css"></link>--> 
 
 		<title>OSU Jobs</title>
 	</head>
 	<body>
 		<script type="text/javascript">
 			$(document).ready(function(){
-				//$('#entries').dataTable({
-					//"bPaginate": true,
-					//"bLengthChange": true,
-					//"bFilter": false,
-					//"bSort": false,
-//					"bInfo": false,
-					//"bAutoWidth": false 
-					//"sAjaxSource": {url:"atom_feed_processes.php", data:{action: 'atom_feed_for_datatables'},
-					//"bServerSide": true,
-					//"sServerMethod": 'GET',
-					//"aoColumns": [
-						//{ "mData": "Title" },
-						//{ "mData": "ID" },
-						//{ "mData": "Posting Department" },
-						//{ "mData": "Published"},
-						//{ "mData": "Content"}
-					//],
-
-				//});
+				$('#entries').tablePagination({});
+				
 				$('#titles').change(function(){
-					$.ajax({ url: 'atom_feed_processes.php',
-							data: {action: 'atom_feed_by_title', title:$('#titles').val()},
+					$('#departments').val('all');
+					$.ajax({ url: 'ajax_get_entries_by_title.php',
+							data: {title : $('#titles').val()},
 							type: 'post',
 							success: function(output) {
-								$('#entries_body').html(output);
+								ajax_update_results(output);
+							}
+					});
+				});
+				$('#departments').change(function(){
+					$('#titles').val('all');
+					$.ajax({ url: 'ajax_get_entries_by_department.php',
+							data: {department : $('#departments').val()},
+							type: 'post',
+							success: function(output) {
+								ajax_update_results(output);
 							}
 					});
 				});
 				
+				$('#sort_by').change(function(){
+					console.log("You've called the sorting function...");
+					$.ajax({ url: 'ajax_sort_all_entries.php',
+							data: {index : $('#sort_by').val()},
+							type: 'post',
+							cache: false,
+							success: function(output) {
+								ajax_update_results(output);
+							}
+					});
+				});
+				function ajax_update_results(output){
+					$('#entries_body').html(output);
+					$('#results_number').html('Search Results | ' + $('#entries >tbody >tr').length / 2);
+					$('#entries').tablePagination({});
+				}
 			});
 		</script>
 		<div class="row">
 			<div class="column large-12">
 				<?php
-					$results = atom_feed_to_array(null);
+					$results = get_all_entries();
 					echo "<p>";
-					echo "<h3>Search Results | ".count($results)."</h3>";
+					echo "<h3 id='results_number'>Search Results | ".count($results)."</h3>";
 					echo "</p>";
 				?>
 			</div>
@@ -81,22 +97,30 @@
 					$titles =  get_distinct_titles();
 					echo "<strong> Search By Title </strong><br />";
 					echo '<select id="titles">';
-					echo '<option>--Choose One--</option>';
+					echo '<option value="all">-- All --</option>';
 					foreach($titles as $title){ 
 						echo '<option value="'.$title.'">'.$title.'</option>'; 
 					}
 					echo '</select>';
-					//echo $titles;
+					
+					echo "<br /><br />";
+					
 					$departments = get_distinct_departments();
-					echo "<br /><br /><strong>Search By Department</strong><br />";
+					echo "<strong>Search By Department</strong><br />";
 					echo '<select id="departments">';
-					echo '<option>--Choose One--</option>';
-					//echo $departments;
+					echo '<option value="all">-- All --</option>';
 					foreach($departments as $department){ 
 						echo '<option value="'.$department.'">'.$department.'</option>'; 
 					}
 					echo '</select>';
 				?>
+				<br /><br />
+				<strong>Sort</strong><br />
+				<select id="sort_by">
+					<option value="none">-- None --</option>
+					<option value="title">By Title</option>
+					<option value="author">By Department</option>
+				</select>
 			</div>
 		
 		</div>

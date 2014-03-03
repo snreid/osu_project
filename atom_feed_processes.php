@@ -1,20 +1,4 @@
 <?php
-	if(isset($_POST['action']) && !empty($_POST['action'])) {
-		$action = $_POST['action'];
-		$title = $_POST['title'];
-		switch($action) {
-			case 'ajax_get_job_by_title' : ajax_get_job_by_title($title);break;
-			case 'blah' : blah();break;
-			default : atom_feed_to_array();break;
-		}
-	}
-
-	function ajax_get_job_by_title($title){
-		echo $title;
-		atom_feed_to_array("//atom:entry/atom:title[.='Accountant']/..");
-		//"//atom:entry/atom:title[.='".$title."']/.."
-	}
-
 	function query_atom_feed($query){
 		$feed_url = "https://www.jobsatosu.com/all_jobs.atom";
 		$fopen_feed = fopen($feed_url, "r");
@@ -31,23 +15,35 @@
 		$xPath = new DOMXPath($doc);
 		
 		$xPath->registerNamespace('atom', "http://www.w3.org/2005/Atom");
-		$query = ($query == null ? "//atom:entry" : $query);
 		$results = $xPath->query($query);
-		//"/atom:title[.='Post Doctoral Researcher']/.."
 		
-		//echo $data;
 		//Close fopen
 		fclose($fopen_feed);
 		
 		return $results;
 	}
 	
-	function atom_feed_to_array($query){
-		echo "Results of query: ".$query;
-		$results = query_atom_feed($query);
+	function query_for_all(){
+		return "//atom:entry";
+	}
+	
+	function get_all_entries(){
+		$data = atom_feed_to_array(query_atom_feed(query_for_all()));
+		//$index = 'title';
+		//foreach ($data as $key => $row) {
+		//	$sort_by[$key]  = $row[$index];
+		//}
+
+	// Add $data as the last parameter, to sort by the common key
+		//array_multisort($sort_by, SORT_ASC, $data);
+	
+		return $data;
+	}
+	
+	function atom_feed_to_array($feed){
 		$results_array = Array();
 		$i=0;
-		foreach($results as $entry){
+		foreach($feed as $entry){
 			$results_array[$i]['id'] = "{$entry->getElementsByTagName('id')->item(0)->nodeValue}";
 			$results_array[$i]['title'] = "{$entry->getElementsByTagName('title')->item(0)->nodeValue}";
 			$results_array[$i]['author'] = "{$entry->getElementsByTagName('author')->item(0)->getElementsByTagName('name')->item(0)->nodeValue}";
@@ -75,7 +71,7 @@
 	}
 	
 	function get_distinct_titles(){
-		$results = query_atom_feed(null);
+		$results = query_atom_feed(query_for_all());
 		$titles = Array();
 		foreach($results as $result){
 			$titles[] = "{$result->getElementsByTagName('title')->item(0)->nodeValue}";
@@ -86,7 +82,7 @@
 	}
 	
 	function get_distinct_departments(){
-		$results = query_atom_feed(null);
+		$results = query_atom_feed(query_for_all());
 		$departments = Array();
 		foreach($results as $result){
 			$departments[] = "{$result->getElementsByTagName('author')->item(0)->getElementsByTagName('name')->item(0)->nodeValue}";
@@ -94,50 +90,5 @@
 		sort($departments);
 		$departments = array_unique($departments);
 		return $departments;
-	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-		function atom_feed_for_datatables(){
-		$results = query_atom_feed();
-		$results_array = Array();
-		$i=0;
-		foreach($results as $entry){
-			$results_array[$i][] = "{$entry->getElementsByTagName('title')->item(0)->nodeValue}";
-			$results_array[$i][] = "{$entry->getElementsByTagName('id')->item(0)->nodeValue}";
-			$results_array[$i][] = "{$entry->getElementsByTagName('author')->item(0)->getElementsByTagName('name')->item(0)->nodeValue}";
-			$results_array[$i][] = "{$entry->getElementsByTagName('published')->item(0)->nodeValue}";
-			//$results_array[$i][] = "{$entry->getElementsByTagName('updated')->item(0)->nodeValue}";
-			//$results_array[$i][] = "{$entry->getElementsByTagName('link')->item(0)->getAttribute('href')}";
-			$results_array[$i][] = "{$entry->getElementsByTagName('content')->item(0)->nodeValue}";	
-			$i++;
-		}
-		
-		$iTotal = count($results_array);
-		$iFilteredTotal = count($results_array);
-		
-		$output = array(
-			"sEcho" => intval($_GET['sEcho']),
-			"iTotalRecords" => $iTotal,
-			"iTotalDisplayRecords" => $iFilteredTotal,
-			"aaData" => array()
-		);
-		
-		
-		 foreach($results_array as $row)
-		{
-			$output['aaData'][] = $row;
-		}
-
-		echo json_encode( $output );
 	}
 ?>
